@@ -5,6 +5,7 @@
 # Version: 1.0 - 21st May 2017
 
 # Heavily hacked by Tony Williams (honestpuck@gmail.com)
+# Latest version at https://github.com/Honestpuck/homebrew.sh
 # v2.0 - 19th Sept 2019
 # v2.0.1 Fixed global cache error
 # v2.0.2 Fixed brew location error
