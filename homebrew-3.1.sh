@@ -93,16 +93,11 @@ if [[ ! -e /usr/local/bin/brew ]]; then
 
     # Install the MD5 checker or the recipes will fail
     su -l "$consoleuser" -c "/usr/local/bin/brew install md5sha1sum"
-    su -l "$consoleuser" -c "/usr/local/bin/brew install terminal-notifier"
-    su -l "$consoleuser" -c "/usr/local/bin/brew install git"
     echo 'export PATH="/usr/local/opt/openssl/bin:$PATH"' | \
 	tee -a /Users/${consoleuser}/.bash_profile /Users/${consoleuser}/.zshrc
     chown ${consoleuser} /Users/${consoleuser}/.bash_profile /Users/${consoleuser}/.zshrc
     
     # clean some directory stuff for Catalina
-    # Error
-    # chown -R $(consoleuser) /private/tmp
-    # Test
     chown -R root:wheel /private/tmp
     chmod 777 /private/tmp
     chmod +t /private/tmp
