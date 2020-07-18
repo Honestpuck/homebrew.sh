@@ -14,8 +14,15 @@
 # v3.0 Catalina version 2020-02-17
 # v3.1 | 2020-03-24 | Fix permissions for /private/tmp
 
+
+
 # Set up variables and functions here
 consoleuser="$(/usr/bin/python -c 'from SystemConfiguration import SCDynamicStoreCopyConsoleUser; import sys; username = (SCDynamicStoreCopyConsoleUser(None, None, None) or [None])[0]; username = [username,""][username in [u"loginwindow", None, u""]]; sys.stdout.write(username + "\n");')"
+
+if [[ -e /usr/local/bin/brew ]]; then
+    su -l "$consoleuser" -c "/usr/local/bin/brew update"
+    exit 0
+fi
 
 # are we in the right group
 check_grp=$(groups ${consoleuser} | grep -c '_developer')
