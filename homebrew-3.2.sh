@@ -13,8 +13,8 @@
 
 # v3.0 Catalina version 2020-02-17
 # v3.1 | 2020-03-24 | Fix permissions for /private/tmp
-
-
+# v3.2 2020-07-18 Added Caskroom to directories created and added check for binary
+# update if it exists then exit
 
 # Set up variables and functions here
 consoleuser="$(/usr/bin/python -c 'from SystemConfiguration import SCDynamicStoreCopyConsoleUser; import sys; username = (SCDynamicStoreCopyConsoleUser(None, None, None) or [None])[0]; username = [username,""][username in [u"loginwindow", None, u""]]; sys.stdout.write(username + "\n");')"
@@ -83,8 +83,8 @@ if [[ ! -e /usr/local/bin/brew ]]; then
     curl -L https://github.com/Homebrew/brew/tarball/master | tar xz --strip 1 -C /usr/local/Homebrew
 
     # Manually make all the appropriate directories and set permissions
-    mkdir -p /usr/local/Cellar /usr/local/Homebrew /usr/local/Frameworks /usr/local/bin /usr/local/etc
-    mkdir -p /usr/local/include /usr/local/lib /usr/local/opt /usr/local/sbin
+    mkdir -p /usr/local/Cellar /usr/local/Homebrew mkdir /usr/local/Caskroom /usr/local/Frameworks /usr/local/bin
+    mkdir -p /usr/local/include /usr/local/lib /usr/local/opt /usr/local/etc /usr/local/sbin
     mkdir -p /usr/local/share/zsh/site-functions /usr/local/var
     mkdir -p /usr/local/share/doc /usr/local/man/man1 /usr/local/share/man/man1
     chown -R "${consoleuser}":_developer /usr/local/*
