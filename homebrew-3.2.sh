@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 
 # Script to install Homebrew on a Mac.
 # Author: richard at richard - purves dot com
@@ -16,11 +16,23 @@
 # v3.2 2020-07-18 Added Caskroom to directories created and added check for binary
 # update if it exists then exit
 
+# 2021-01-11 | Support for osx arm64 added by Shawn Smith (https://github.com/HelixSpiral)
+
 # Set up variables and functions here
 consoleuser="$(/usr/bin/python -c 'from SystemConfiguration import SCDynamicStoreCopyConsoleUser; import sys; username = (SCDynamicStoreCopyConsoleUser(None, None, None) or [None])[0]; username = [username,""][username in [u"loginwindow", None, u""]]; sys.stdout.write(username + "\n");')"
+UNAME_MACHINE="$(uname -m)"
 
-if [[ -e /usr/local/bin/brew ]]; then
-    su -l "$consoleuser" -c "/usr/local/bin/brew update"
+# Set the prefix based on the machine type
+if [[ "$UNAME_MACHINE" == "arm64" ]]; then
+    # M1/arm64 machines
+    HOMEBREW_PREFIX="/opt/homebrew"
+else
+    # Intel machines
+    HOMEBREW_PREFIX="/usr/local"
+fi
+
+if [[ -e "${HOMEBREW_PREFIX}/bin/brew" ]]; then
+    su -l "$consoleuser" -c "${HOMEBREW_PREFIX}/bin/brew update"
     exit 0
 fi
 
@@ -74,22 +86,23 @@ if [[ "$check" != 1 ]]; then
 fi
 
 # Is homebrew already installed?
-if [[ ! -e /usr/local/bin/brew ]]; then
+if [[ ! -e "${HOMEBREW_PREFIX}/bin/brew" ]]; then
     # Install Homebrew. This doesn't like being run as root so we must do this manually.
     logme "Installing Homebrew"
 
-    mkdir -p /usr/local/Homebrew
-    # Curl down the latest tarball and install to /usr/local
-    curl -L https://github.com/Homebrew/brew/tarball/master | tar xz --strip 1 -C /usr/local/Homebrew
+    mkdir -p "${HOMEBREW_PREFIX}/Homebrew"
+    # Curl down the latest tarball and install to ${HOMEBREW_PREFIX}/Homebrew
+    curl -L https://github.com/Homebrew/brew/tarball/master | tar xz --strip 1 -C "${HOMEBREW_PREFIX}/Homebrew"
 
     # Manually make all the appropriate directories and set permissions
-    mkdir -p /usr/local/Cellar /usr/local/Homebrew mkdir /usr/local/Caskroom /usr/local/Frameworks /usr/local/bin
-    mkdir -p /usr/local/include /usr/local/lib /usr/local/opt /usr/local/etc /usr/local/sbin
-    mkdir -p /usr/local/share/zsh/site-functions /usr/local/var
-    mkdir -p /usr/local/share/doc /usr/local/man/man1 /usr/local/share/man/man1
-    chown -R "${consoleuser}":_developer /usr/local/*
-    chmod -R g+rwx /usr/local/*
-    chmod 755 /usr/local/share/zsh /usr/local/share/zsh/site-functions
+    mkdir -p "${HOMEBREW_PREFIX}/Cellar" "${HOMEBREW_PREFIX}/Homebrew"
+    mkdir -p "${HOMEBREW_PREFIX}/Caskroom" "${HOMEBREW_PREFIX}/Frameworks" "${HOMEBREW_PREFIX}/bin"
+    mkdir -p "${HOMEBREW_PREFIX}/include" "${HOMEBREW_PREFIX}/lib" "${HOMEBREW_PREFIX}/opt" "${HOMEBREW_PREFIX}/etc" "${HOMEBREW_PREFIX}/sbin"
+    mkdir -p "${HOMEBREW_PREFIX}/share/zsh/site-functions" "${HOMEBREW_PREFIX}/var"
+    mkdir -p "${HOMEBREW_PREFIX}/share/doc" "${HOMEBREW_PREFIX}/man/man1" "${HOMEBREW_PREFIX}/share/man/man1"
+    chown -R "${consoleuser}":_developer "${HOMEBREW_PREFIX}/*"
+    chmod -R g+rwx "${HOMEBREW_PREFIX}/*"
+    chmod 755 "${HOMEBREW_PREFIX}/share/zsh" "${HOMEBREW_PREFIX}/share/zsh/site-functions"
 
     # Create a system wide cache folder  
     mkdir -p /Library/Caches/Homebrew
@@ -97,11 +110,11 @@ if [[ ! -e /usr/local/bin/brew ]]; then
     chown "${consoleuser}:_developer" /Library/Caches/Homebrew
 
     # put brew where we can find it
-    ln -s /usr/local/Homebrew/bin/brew /usr/local/bin/brew
+    ln -s "${HOMEBREW_PREFIX}/Homebrew/bin/brew" "${HOMEBREW_PREFIX}/bin/brew"
 
     # Install the MD5 checker or the recipes will fail
-    su -l "$consoleuser" -c "/usr/local/bin/brew install md5sha1sum"
-    echo 'export PATH="/usr/local/opt/openssl/bin:$PATH"' | \
+    su -l "$consoleuser" -c "${HOMEBREW_PREFIX}/bin/brew install md5sha1sum"
+    echo 'export PATH="${HOMEBREW_PREFIX}/opt/openssl/bin:$PATH"' | \
 	tee -a /Users/${consoleuser}/.bash_profile /Users/${consoleuser}/.zshrc
     chown ${consoleuser} /Users/${consoleuser}/.bash_profile /Users/${consoleuser}/.zshrc
     
@@ -113,7 +126,7 @@ fi
 
 # Make sure everything is up to date
 logme "Updating Homebrew"
-su -l "$consoleuser" -c "/usr/local/bin/brew update" 2>&1 | tee -a ${LOG}
+su -l "$consoleuser" -c "${HOMEBREW_PREFIX}/bin/brew update" 2>&1 | tee -a ${LOG}
 
 # logme user that all is completed
 logme "Installation complete"
