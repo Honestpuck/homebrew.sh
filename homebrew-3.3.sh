@@ -17,10 +17,21 @@
 # update if it exists then exit
 
 # 2021-01-11 | Support for osx arm64 added by Shawn Smith (https://github.com/HelixSpiral)
+# 2021-04-11 | Some Big Sur cleanup. Posting as 3.3
 
 # Set up variables and functions here
-consoleuser="$(/usr/bin/python -c 'from SystemConfiguration import SCDynamicStoreCopyConsoleUser; import sys; username = (SCDynamicStoreCopyConsoleUser(None, None, None) or [None])[0]; username = [username,""][username in [u"loginwindow", None, u""]]; sys.stdout.write(username + "\n");')"
+consoleuser=$(scutil <<< "show State:/Users/ConsoleUser" | awk '/Name :/ && ! /loginwindow/ { print $3 }' )
 UNAME_MACHINE="$(uname -m)"
+
+
+
+# Logging stuff starts here
+LOGFOLDER="/private/var/log/"
+LOG="${LOGFOLDER}Homebrew.log"
+
+if [ ! -d "$LOGFOLDER" ]; then
+    mkdir $LOGFOLDER
+fi
 
 # Set the prefix based on the machine type
 if [[ "$UNAME_MACHINE" == "arm64" ]]; then
@@ -38,16 +49,9 @@ fi
 
 # are we in the right group
 check_grp=$(groups ${consoleuser} | grep -c '_developer')
+
 if [[ $check_grp != 1 ]]; then
     /usr/sbin/dseditgroup -o edit -a "${consoleuser}" -t user _developer
-fi
-
-# Logging stuff starts here
-LOGFOLDER="/private/var/log/"
-LOG="${LOGFOLDER}Homebrew.log"
-
-if [ ! -d "$LOGFOLDER" ]; then
-    mkdir $LOGFOLDER
 fi
 
 function logme()
@@ -66,6 +70,12 @@ function logme()
 
 # Check and start logging
 logme "Homebrew Installation"
+#############################
+# debug - commented out     #
+# remove comments if needed #
+############################# 
+# logme "user is $consoleuser"
+# logme "is user in dev group? $check_grp"
 
 # Have the xcode command line tools been installed?
 logme "Checking for Xcode Command Line Tools installation"
@@ -100,7 +110,26 @@ if [[ ! -e "${HOMEBREW_PREFIX}/bin/brew" ]]; then
     mkdir -p "${HOMEBREW_PREFIX}/include" "${HOMEBREW_PREFIX}/lib" "${HOMEBREW_PREFIX}/opt" "${HOMEBREW_PREFIX}/etc" "${HOMEBREW_PREFIX}/sbin"
     mkdir -p "${HOMEBREW_PREFIX}/share/zsh/site-functions" "${HOMEBREW_PREFIX}/var"
     mkdir -p "${HOMEBREW_PREFIX}/share/doc" "${HOMEBREW_PREFIX}/man/man1" "${HOMEBREW_PREFIX}/share/man/man1"
-    chown -R "${consoleuser}":_developer "${HOMEBREW_PREFIX}/*"
+    #chown -R "${consoleuser}":_developer "${HOMEBREW_PREFIX}/*"
+    ##################################################################
+    ### M Lamont changed to not overwrite existing folders, e.g jamf # 
+    ###  also took th ebrackets out as this was stopping it working  #
+    ###  and No I don't know why                                     #
+    ##################################################################
+    chown -R "$consoleuser":_developer "${HOMEBREW_PREFIX}/Cellar"
+    chown -R "$consoleuser":_developer "${HOMEBREW_PREFIX}/Homebrew"
+    chown -R "$consoleuser":_developer "${HOMEBREW_PREFIX}/Caskroom"
+    chown -R "$consoleuser":_developer "${HOMEBREW_PREFIX}/Frameworks"
+    chown -R "$consoleuser":_developer "${HOMEBREW_PREFIX}/bin"
+    chown -R "$consoleuser":_developer "${HOMEBREW_PREFIX}/include"
+    chown -R "$consoleuser":_developer "${HOMEBREW_PREFIX}/lib"
+    chown -R "$consoleuser":_developer "${HOMEBREW_PREFIX}/opt"
+    chown -R "$consoleuser":_developer "${HOMEBREW_PREFIX}/etc"
+    chown -R "$consoleuser":_developer "${HOMEBREW_PREFIX}/sbin"
+    chown -R "$consoleuser":_developer "${HOMEBREW_PREFIX}/share"
+    chown -R "$consoleuser":_developer "${HOMEBREW_PREFIX}/var"
+    chown -R "$consoleuser":_developer "${HOMEBREW_PREFIX}/man"
+
     chmod -R g+rwx "${HOMEBREW_PREFIX}/*"
     chmod 755 "${HOMEBREW_PREFIX}/share/zsh" "${HOMEBREW_PREFIX}/share/zsh/site-functions"
 
@@ -122,6 +151,12 @@ if [[ ! -e "${HOMEBREW_PREFIX}/bin/brew" ]]; then
     chown -R root:wheel /private/tmp
     chmod 777 /private/tmp
     chmod +t /private/tmp
+
+    ############################
+    ## M Lamont Add to paths.d #
+    ############################
+    touch /etc/paths.d/brew
+    echo "${HOMEBREW_PREFIX}/bin" > /etc/paths.d/brew
 fi
 
 # Make sure everything is up to date
