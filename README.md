@@ -12,7 +12,7 @@ Thanks to all my users for feedback and improvements.
 
 # brewEA.sh
 This EA compliments the script to produce a Jamf extension attribute to record brew version.
-It uses the same method of detecting device type and look in the same places as the script installs to.
+It uses the same method to detect device type and looks where the script installs.
  *If brew is installed in different locations this will not detect it!*
 
 # brew-install-program.sh
