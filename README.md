@@ -16,6 +16,11 @@ It uses the same method of detecting device type and look in the same places as 
  *If brew is installed in different locations this will not detect it!*
 
 # brew-install-program.sh
-This script can be used to install any brew program that installs using *brew install* command.
-It is designed to work with the brew install here and be used in jamf.
+This script can be used to install any brew program that installs using *brew install <name>* command.
+It is designed to work with the brew install script here and be used in jamf.
 Specify the install name as the first jamf variable.
+
+# brew-install-cask.sh
+Like the *brew-install-program* script this variation is used to install casks where the *brew install --cask <name>* is used.
+It is designed to work with the brew install script here and be used in jamf.
+Specify the cask name as the first jamf variable.
