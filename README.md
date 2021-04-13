@@ -14,3 +14,8 @@ Thanks to all my users for feedback and improvements.
 This EA compliments the script to produce a Jamf extension attribute to record brew version.
 It uses the same method of detecting device type and look in the same places as the script installs to.
  *If brew is installed in different locations this will not detect it!*
+
+# brew-install-program.sh
+This script can be used to install any brew program that installs using *brew install* command.
+It is designed to work with the brew install here and be used in jamf.
+Specify the install name as the first jamf variable.
