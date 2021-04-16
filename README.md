@@ -24,3 +24,9 @@ Specify the install name as the first jamf variable.
 Like the *brew-install-program* script this variation is used to install casks where the *brew install --cask <name>* is used.
 It is designed to work with the brew install script here and be used in jamf.
 Specify the cask name as the first jamf variable.
+
+# wget-version.sh
+A Jamf EA to record the version of wget if installed using this brew installer method
+
+# google-cloud-sdl-version.sh
+A Jamf EA to record the version of google-cloud-sdk if installed using this brew installer method
