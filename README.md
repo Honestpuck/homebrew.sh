@@ -28,5 +28,5 @@ Specify the cask name as the first jamf variable.
 # wget-version.sh
 A Jamf EA to record the version of wget if installed using this brew installer method
 
-# google-cloud-sdl-version.sh
+# google-cloud-sdk-version.sh
 A Jamf EA to record the version of google-cloud-sdk if installed using this brew installer method
