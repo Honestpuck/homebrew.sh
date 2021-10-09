@@ -16,20 +16,16 @@ ConsoleUser=$( scutil <<< "show State:/Users/ConsoleUser" | awk '/Name :/ && ! /
 
 if [[ "$UNAME_MACHINE" == "arm64" ]]; then
     # M1/arm64 machines
-    cd /tmp/ # This is required to use sudo as another user or you get a getcwd error
-        if [[ $(sudo -H -iu ${ConsoleUser} /opt/homebrew/bin/brew info ${item}) != *Not\ installed* ]]; then
-        echo "${item} is installed already. Skipping installation"
-        else
-        echo "${item} is either not installed or not available. Attempting installation..."
-        sudo -H -iu ${ConsoleUser} /opt/homebrew/bin/brew install ${item}
-        fi
+    brew=/opt/homebrew/bin/brew
 else
     # Intel machines
-    cd /tmp/ # This is required to use sudo as another user or you get a getcwd error
-        if [[ $(sudo -H -iu ${ConsoleUser} /usr/local/bin/brew info ${item}) != *Not\ installed* ]]; then
-        echo "${item} is installed already. Skipping installation"
-        else
-        echo "${item} is either not installed or not available. Attempting installation..."
-        sudo -H -iu ${ConsoleUser} /usr/local/bin/brew install ${item}
-        fi
+    brew=/usr/local/bin/brew
+fi
+
+cd /tmp/ # This is required to use sudo as another user or you get a getcwd error
+if [[ $(sudo -H -iu ${ConsoleUser} ${brew} info ${item}) != *Not\ installed* ]]; then
+	echo "${item} is installed already. Skipping installation"
+else
+	echo "${item} is either not installed or not available. Attempting installation..."
+	sudo -H -iu ${ConsoleUser} ${brew} install ${item}
 fi
