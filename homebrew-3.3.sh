@@ -58,14 +58,12 @@ function logme()
 {
 # Check to see if function has been called correctly
     if [ -z "$1" ] ; then
-        echo "$(date) - logme function call error: no text passed to function! Please recheck code!"
-        echo "$(date) - logme function call error: no text passed to function! Please recheck code!" >> $LOG
+        echo "$(date) - logme function call error: no text passed to function! Please recheck code!" | tee -a $LOG
         exit 1
     fi
 
 # Log the passed details
-    echo -e "$(date) - $1" >> $LOG
-    echo -e "$(date) - $1"
+    echo -e "$(date) - $1" | tee -a $LOG
 }
 
 # Check and start logging
