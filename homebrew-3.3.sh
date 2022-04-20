@@ -161,6 +161,11 @@ fi
 logme "Updating Homebrew"
 su -l "$consoleuser" -c "${HOMEBREW_PREFIX}/bin/brew update" 2>&1 | tee -a ${LOG}
 
+# set shellenv for M1 users
+if [[ "$UNAME_MACHINE" == "arm64" ]]; then
+    echo 'eval $(/opt/homebrew/bin/brew shellenv)' >> /Users/${consoleuser}/.profile
+fi
+
 # logme user that all is completed
 logme "Installation complete"
 
