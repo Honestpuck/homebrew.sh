@@ -1,5 +1,6 @@
 #!/bin/sh
-
+#running script from console user 
+sudo -u $(stat -f "%Su" /dev/console) /bin/sh <<'END' 
 # Extension attribute for homebrew install
 
 # M Lamont
