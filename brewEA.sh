@@ -10,12 +10,12 @@ RESULT="Not Found"
 UNAME_MACHINE="$(uname -m)"
 
 if [[ "$UNAME_MACHINE" == "arm64" ]]; then
-    # M1/arm64 machines
+    # Apple Silicon (arm64) machines - the default Mac since 2020
     if [[ -e /opt/homebrew/bin/brew ]]; then
     RESULT=$(/opt/homebrew/bin/brew -v | head -n 1 | awk '{ print $2 }')
     fi
 else
-    # Intel machines
+    # Intel machines - deprecated by Apple, no longer receiving new macOS versions
     if [[ -e /usr/local/bin/brew ]]; then
     RESULT=$(/usr/local/bin/brew -v | head -n 1 | awk '{ print $2 }')
     fi

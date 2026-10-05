@@ -15,10 +15,10 @@ ConsoleUser=$( scutil <<< "show State:/Users/ConsoleUser" | awk '/Name :/ && ! /
 # Check if the item is already installed. If not, install it
 
 if [[ "$UNAME_MACHINE" == "arm64" ]]; then
-    # M1/arm64 machines
+    # Apple Silicon (arm64) machines - the default Mac since 2020
     brew=/opt/homebrew/bin/brew
 else
-    # Intel machines
+    # Intel machines - deprecated by Apple, no longer receiving new macOS versions
     brew=/usr/local/bin/brew
 fi
 

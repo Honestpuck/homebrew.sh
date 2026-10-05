@@ -19,6 +19,17 @@
 # 2021-01-11 | Support for osx arm64 added by Shawn Smith (https://github.com/HelixSpiral)
 # 2021-04-11 | Some Big Sur cleanup. Posting as 3.3
 
+# v3.4 | 2026-10-05 | be-bu fork: Homebrew/brew dropped the "master" branch, and
+#   brew now refuses to operate against it. Replaced the tarball-of-master
+#   bootstrap with a real `git clone` (default branch, i.e. "main"), since
+#   `brew update`/`brew doctor` require an actual git checkout. Also added a
+#   repair path for Macs that already have a tarball-based (non-git) install,
+#   since the "already installed" fast path never reached the install block.
+#   Fixed brew shellenv being written to ~/.profile (which zsh never reads)
+#   instead of ~/.zprofile. Updated "M1" references to "Apple Silicon" and
+#   noted Intel is now deprecated by Apple - this script is 5+ years old and
+#   zsh has been the default macOS shell for 3+ years.
+
 # Set up variables and functions here
 consoleuser=$(scutil <<< "show State:/Users/ConsoleUser" | awk '/Name :/ && ! /loginwindow/ { print $3 }' )
 UNAME_MACHINE="$(uname -m)"
@@ -35,14 +46,27 @@ fi
 
 # Set the prefix based on the machine type
 if [[ "$UNAME_MACHINE" == "arm64" ]]; then
-    # M1/arm64 machines
+    # Apple Silicon (arm64) machines - the default Mac since 2020
     HOMEBREW_PREFIX="/opt/homebrew"
 else
-    # Intel machines
+    # Intel machines - deprecated by Apple, no longer receiving new macOS versions
     HOMEBREW_PREFIX="/usr/local"
 fi
 
-if [[ -e "${HOMEBREW_PREFIX}/bin/brew" ]]; then
+NEEDS_INSTALL=0
+if [[ ! -e "${HOMEBREW_PREFIX}/bin/brew" ]]; then
+    NEEDS_INSTALL=1
+elif [[ ! -d "${HOMEBREW_PREFIX}/Homebrew/.git" ]]; then
+    # Legacy install from the old tarball/master bootstrap - not a git repo,
+    # so brew update/doctor can't work. Clear it out and let the install
+    # block below re-clone it. This only touches brew's own code; installed
+    # formulae/casks live under Cellar/Caskroom/opt and are left alone.
+    NEEDS_INSTALL=1
+    rm -rf "${HOMEBREW_PREFIX}/Homebrew"
+    rm -f "${HOMEBREW_PREFIX}/bin/brew"
+fi
+
+if [[ $NEEDS_INSTALL -eq 0 ]]; then
     su -l "$consoleuser" -c "${HOMEBREW_PREFIX}/bin/brew update"
     exit 0
 fi
@@ -93,14 +117,19 @@ if [[ "$check" != 1 ]]; then
     /usr/bin/xcode-select --switch /Library/Developer/CommandLineTools
 fi
 
-# Is homebrew already installed?
-if [[ ! -e "${HOMEBREW_PREFIX}/bin/brew" ]]; then
+# Is homebrew already installed (and a valid git checkout)?
+if [[ $NEEDS_INSTALL -eq 1 ]]; then
     # Install Homebrew. This doesn't like being run as root so we must do this manually.
     logme "Installing Homebrew"
 
     mkdir -p "${HOMEBREW_PREFIX}/Homebrew"
-    # Curl down the latest tarball and install to ${HOMEBREW_PREFIX}/Homebrew
-    curl -L https://github.com/Homebrew/brew/tarball/master | tar xz --strip 1 -C "${HOMEBREW_PREFIX}/Homebrew"
+    # Clone brew's git repo (default branch, i.e. "main") into ${HOMEBREW_PREFIX}/Homebrew.
+    # brew update/doctor require a real git checkout, so this must be a clone, not a tarball.
+    git clone https://github.com/Homebrew/brew "${HOMEBREW_PREFIX}/Homebrew"
+    if [[ ! -d "${HOMEBREW_PREFIX}/Homebrew/.git" ]]; then
+        logme "ERROR: git clone of Homebrew/brew into ${HOMEBREW_PREFIX}/Homebrew failed - aborting install"
+        exit 1
+    fi
 
     # Manually make all the appropriate directories and set permissions
     mkdir -p "${HOMEBREW_PREFIX}/Cellar" "${HOMEBREW_PREFIX}/Homebrew"
@@ -128,7 +157,12 @@ if [[ ! -e "${HOMEBREW_PREFIX}/bin/brew" ]]; then
     chown -R "$consoleuser":_developer "${HOMEBREW_PREFIX}/var"
     chown -R "$consoleuser":_developer "${HOMEBREW_PREFIX}/man"
 
-    chmod -R g+rwx "${HOMEBREW_PREFIX}/*"
+    # Quoted, so chmod each directory explicitly rather than relying on a
+    # glob that double quotes would stop the shell from ever expanding.
+    chmod -R g+rwx "${HOMEBREW_PREFIX}/Cellar" "${HOMEBREW_PREFIX}/Homebrew" "${HOMEBREW_PREFIX}/Caskroom" \
+        "${HOMEBREW_PREFIX}/Frameworks" "${HOMEBREW_PREFIX}/bin" "${HOMEBREW_PREFIX}/include" \
+        "${HOMEBREW_PREFIX}/lib" "${HOMEBREW_PREFIX}/opt" "${HOMEBREW_PREFIX}/etc" "${HOMEBREW_PREFIX}/sbin" \
+        "${HOMEBREW_PREFIX}/share" "${HOMEBREW_PREFIX}/var" "${HOMEBREW_PREFIX}/man"
     chmod 755 "${HOMEBREW_PREFIX}/share/zsh" "${HOMEBREW_PREFIX}/share/zsh/site-functions"
 
     # Create a system wide cache folder  
@@ -141,7 +175,9 @@ if [[ ! -e "${HOMEBREW_PREFIX}/bin/brew" ]]; then
 
     # Install the MD5 checker or the recipes will fail
     su -l "$consoleuser" -c "${HOMEBREW_PREFIX}/bin/brew install md5sha1sum"
-    echo 'export PATH="${HOMEBREW_PREFIX}/opt/openssl/bin:$PATH"' | \
+    # Double-quoted so HOMEBREW_PREFIX resolves now, while $PATH stays
+    # escaped so it's evaluated later, at shell-startup time.
+    echo "export PATH=\"${HOMEBREW_PREFIX}/opt/openssl/bin:\$PATH\"" | \
 	tee -a /Users/${consoleuser}/.bash_profile /Users/${consoleuser}/.zshrc
     chown ${consoleuser} /Users/${consoleuser}/.bash_profile /Users/${consoleuser}/.zshrc
     
@@ -161,9 +197,17 @@ fi
 logme "Updating Homebrew"
 su -l "$consoleuser" -c "${HOMEBREW_PREFIX}/bin/brew update" 2>&1 | tee -a ${LOG}
 
-# set shellenv for M1 users
+# set shellenv for Apple Silicon users
+# zsh (the default login shell on all current macOS versions) reads
+# ~/.zprofile for login shells, not ~/.profile - so write there, and
+# only once, since this runs on every policy execution, not just install.
 if [[ "$UNAME_MACHINE" == "arm64" ]]; then
-    echo 'eval $(/opt/homebrew/bin/brew shellenv)' >> /Users/${consoleuser}/.profile
+    ZPROFILE="/Users/${consoleuser}/.zprofile"
+    touch "$ZPROFILE"
+    chown "$consoleuser" "$ZPROFILE"
+    if ! grep -q 'brew shellenv' "$ZPROFILE"; then
+        echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> "$ZPROFILE"
+    fi
 fi
 
 # logme user that all is completed
